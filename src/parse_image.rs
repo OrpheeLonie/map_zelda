@@ -6,8 +6,18 @@ pub fn read_image(file_name: &str) -> Result<image::DynamicImage, image::ImageEr
     Ok(img)
 }
 
-pub fn find_location_in_map(_img: image::DynamicImage) -> (u32, u32) {
-    (0, 0)
+pub fn find_location_in_map(img: &image::DynamicImage) -> (u32, u32) {
+    let rgb_image = img.as_rgb8().unwrap();
+    let mut x = 0;
+    let mut y = 0;
+    while rgb_image.get_pixel(x, y).eq(&image::Rgb([0, 0, 0])) {
+        x += 1;
+        if y < x {
+            y += 1;
+            x = 0;
+        }
+    }
+    (x, y)
 }
 
 #[cfg(test)]
@@ -27,5 +37,14 @@ mod tests {
 
     #[test]
     fn test_find_location_in_map() {
+        // Given
+        let img = read_image("images/20240310002429_1.jpg").unwrap();
+
+        // When
+        let (x, y) = find_location_in_map(&img);
+
+        // Then
+        assert_eq!(72, x);
+        assert_eq!(107, y);
     }
 }
