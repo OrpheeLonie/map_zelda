@@ -23,6 +23,22 @@ pub fn find_location_in_map(img: &image::DynamicImage) -> (u32, u32) {
     (x, y)
 }
 
+pub fn find_map_size(img: &image::DynamicImage, coordinates: (u32, u32)) -> (u32, u32) {
+    let mut width = 0;
+    let mut height = 0;
+    let rgb_image = img.as_rgb8().unwrap();
+
+    while !rgb_image.get_pixel(coordinates.0 + width, coordinates.1).eq(&image::Rgb([0, 0, 0])) {
+        width += 1;
+    }
+
+    while !rgb_image.get_pixel(coordinates.0, coordinates.1 + height).eq(&image::Rgb([0, 0, 0])) {
+        height += 1;
+    }
+
+    return (width, height)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -49,5 +65,18 @@ mod tests {
         // Then
         assert_eq!(72, x);
         assert_eq!(107, y);
+    }
+
+    #[test]
+    fn test_find_map_size() {
+        // Given
+        let img = read_image("images/20240310002429_1.jpg").unwrap();
+        let coord = find_location_in_map(&img);
+
+        // When
+        let size = find_map_size(&img, coord);
+
+        // Then
+        assert_eq!((288, 146), size);
     }
 }
