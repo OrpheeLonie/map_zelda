@@ -9,7 +9,7 @@ pub fn read_image(file_name: &str) -> Result<image::DynamicImage, image::ImageEr
 
 /// Search for the top left corner of the map (first not black pixel) and return
 /// its coordinates
-pub fn find_location_in_map(img: &image::DynamicImage) -> (u32, u32) {
+pub fn find_map_top_left_corner(img: &image::DynamicImage) -> (u32, u32) {
     let rgb_image = img.as_rgb8().unwrap();
     let mut x = 0;
     let mut y = 0;
@@ -60,7 +60,7 @@ mod tests {
         let img = read_image("images/20240310002429_1.jpg").unwrap();
 
         // When
-        let (x, y) = find_location_in_map(&img);
+        let (x, y) = find_map_top_left_corner(&img);
 
         // Then
         assert_eq!(72, x);
@@ -71,7 +71,7 @@ mod tests {
     fn test_find_map_size() {
         // Given
         let img = read_image("images/20240310002429_1.jpg").unwrap();
-        let coord = find_location_in_map(&img);
+        let coord = find_map_top_left_corner(&img);
 
         // When
         let size = find_map_size(&img, coord);
