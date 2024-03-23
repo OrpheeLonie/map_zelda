@@ -66,30 +66,37 @@ pub fn find_cursor_location(img: &image::DynamicImage, map_top_left_corner: (u32
     let rgb_image = img.as_rgb8().unwrap();
     let top_left_pixel = rgb_image.get_pixel(map_corner_x, map_corner_y);
 
-    let mut cursor_position = (0, 0);
-    'position: for x in 0..map_size.0 {
+    for x in 0..map_size.0 {
         for y in 0..map_size.1 {
             if !pixel_are_equals(rgb_image.get_pixel(map_corner_x + x, map_corner_y + y), top_left_pixel, 20) {
-                cursor_position = (x, y);
-                break 'position;
+                return (x, y);
             }
         }
     }
+    return (0, 0)
+}
 
-    let cursor_color = rgb_image.get_pixel(map_corner_x + cursor_position.0, map_corner_y + cursor_position.1);
-    let pos_cursor = (cursor_position.0 + map_top_left_corner.0, cursor_position.1 + map_top_left_corner.1);
+pub fn find_cursor_size(img: &image::DynamicImage, cursor_top_left_corner: (u32, u32)) -> (u32, u32) {
+    let rgb_image = img.as_rgb8().unwrap();
+    let cursor_color = rgb_image.get_pixel(cursor_top_left_corner.0, cursor_top_left_corner.1);
 
     let mut width = 0;
     let mut height = 0;
 
-    while pixel_are_equals(rgb_image.get_pixel(pos_cursor.0 + width, pos_cursor.1), cursor_color, 20) {
+    while pixel_are_equals(rgb_image.get_pixel(cursor_top_left_corner.0 + width, cursor_top_left_corner.1), cursor_color, 20) {
         width += 1;
     }
-    while pixel_are_equals(rgb_image.get_pixel(pos_cursor.0, pos_cursor.1 + height), cursor_color, 20) {
+    while pixel_are_equals(rgb_image.get_pixel(cursor_top_left_corner.0, cursor_top_left_corner.1 + height), cursor_color, 20) {
         height += 1;
     }
 
-    ((cursor_position.0 + width/2) / width, (cursor_position.1 + height/2) / height)
+    (width, height)
+}
+
+pub fn get_cursor_location_on_map(cursor_top_left_corner: (u32, u32), size: (u32, u32)) -> (u32, u32) {
+    let (width, height) = size;
+
+    ((cursor_top_left_corner.0 + width/2) / width, (cursor_top_left_corner.1 + height/2) / height)
 }
 
 #[cfg(test)]
@@ -144,6 +151,40 @@ mod tests {
         let pos = find_cursor_location(&img, coord, size);
 
         // Then
-        assert_eq!((2, 3), pos);
+        assert_eq!((23, 36), pos);
+    }
+
+    #[test]
+    fn test_find_cursor_size() {
+        // Given
+        let img = read_image("images/20240310002429_1.jpg").unwrap();
+        let map_top_left_corner = find_map_top_left_corner(&img);
+        let map_size = find_map_size(&img, map_top_left_corner);
+        let cursor_top_left_corner = find_cursor_location(&img, map_top_left_corner, map_size);
+
+        let cursor_top_left_corner_absolute = (cursor_top_left_corner.0 + map_top_left_corner.0, cursor_top_left_corner.1 + map_top_left_corner.1);
+
+        // When
+        let cursor_size = find_cursor_size(&img, cursor_top_left_corner_absolute);
+
+        // Then
+        assert_eq!((13, 14), cursor_size);
+    }
+
+    #[test]
+    fn test_find_cursor_location_on_map() {
+        // Given
+        let img = read_image("images/20240310002429_1.jpg").unwrap();
+        let map_top_left_corner = find_map_top_left_corner(&img);
+        let map_size = find_map_size(&img, map_top_left_corner);
+        let cursor_top_left_corner = find_cursor_location(&img, map_top_left_corner, map_size);
+
+        let cursor_top_left_corner_absolute = (cursor_top_left_corner.0 + map_top_left_corner.0, cursor_top_left_corner.1 + map_top_left_corner.1);
+        let cursor_size = find_cursor_size(&img, cursor_top_left_corner_absolute);
+        // When
+        let cursor_pos = get_cursor_location_on_map(cursor_top_left_corner, cursor_size);
+
+        // Then
+        assert_eq!((2, 3), cursor_pos);
     }
 }
