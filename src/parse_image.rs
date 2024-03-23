@@ -1,11 +1,14 @@
 use image::io::Reader as ImageReader;
 
+/// Try to open the image at `file_name`
 pub fn read_image(file_name: &str) -> Result<image::DynamicImage, image::ImageError> {
     let img = ImageReader::open(file_name)?.decode()?;
 
     Ok(img)
 }
 
+/// Search for the top left corner of the map (first not black pixel) and return
+/// its coordinates
 pub fn find_location_in_map(img: &image::DynamicImage) -> (u32, u32) {
     let rgb_image = img.as_rgb8().unwrap();
     let mut x = 0;
