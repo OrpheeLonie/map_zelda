@@ -1,5 +1,21 @@
 use image::io::Reader as ImageReader;
 
+/// Compare 2 pixels while ignoring a diff of less than `accuracy`
+fn pixel_are_equals(px1: &image::Rgb<u8>, px2: &image::Rgb<u8>, accuracy: i32) -> bool {
+    let chan1 = px1.0;
+    let chan2 = px2.0;
+
+    for i in 0..3 {
+        let diff: i32 = chan1[i] as i32 - chan2[i] as i32;
+        if -accuracy > diff || accuracy < diff {
+            return false
+        }
+    }
+
+    true
+}
+
+
 /// Try to open the image at `file_name`
 pub fn read_image(file_name: &str) -> Result<image::DynamicImage, image::ImageError> {
     let img = ImageReader::open(file_name)?.decode()?;
@@ -13,7 +29,9 @@ pub fn find_map_top_left_corner(img: &image::DynamicImage) -> (u32, u32) {
     let rgb_image = img.as_rgb8().unwrap();
     let mut x = 0;
     let mut y = 0;
-    while rgb_image.get_pixel(x, y).eq(&image::Rgb([0, 0, 0])) {
+    let black_pixel = image::Rgb([0, 0, 0]);
+
+    while pixel_are_equals(rgb_image.get_pixel(x, y), &black_pixel, 10) {
         x += 1;
         if y < x {
             y += 1;
@@ -23,20 +41,55 @@ pub fn find_map_top_left_corner(img: &image::DynamicImage) -> (u32, u32) {
     (x, y)
 }
 
+/// find the size of the map
 pub fn find_map_size(img: &image::DynamicImage, coordinates: (u32, u32)) -> (u32, u32) {
     let mut width = 0;
     let mut height = 0;
     let rgb_image = img.as_rgb8().unwrap();
+    let black_pixel = image::Rgb([0, 0, 0]);
 
-    while !rgb_image.get_pixel(coordinates.0 + width, coordinates.1).eq(&image::Rgb([0, 0, 0])) {
+    while !pixel_are_equals(rgb_image.get_pixel(coordinates.0 + width, coordinates.1), &black_pixel, 10) {
         width += 1;
     }
 
-    while !rgb_image.get_pixel(coordinates.0, coordinates.1 + height).eq(&image::Rgb([0, 0, 0])) {
+    while !pixel_are_equals(rgb_image.get_pixel(coordinates.0, coordinates.1 + height), &black_pixel, 10) {
         height += 1;
     }
 
-    return (width, height)
+    (width - 1, height - 1)
+}
+
+/// Find the location of the cursor
+/// return the position divided by the size to get the index of the screen
+pub fn find_cursor_location(img: &image::DynamicImage, map_top_left_corner: (u32, u32), map_size: (u32, u32)) -> (u32, u32) {
+    let (map_corner_x, map_corner_y) = map_top_left_corner;
+    let rgb_image = img.as_rgb8().unwrap();
+    let top_left_pixel = rgb_image.get_pixel(map_corner_x, map_corner_y);
+
+    let mut cursor_position = (0, 0);
+    'position: for x in 0..map_size.0 {
+        for y in 0..map_size.1 {
+            if !pixel_are_equals(rgb_image.get_pixel(map_corner_x + x, map_corner_y + y), top_left_pixel, 20) {
+                cursor_position = (x, y);
+                break 'position;
+            }
+        }
+    }
+
+    let cursor_color = rgb_image.get_pixel(map_corner_x + cursor_position.0, map_corner_y + cursor_position.1);
+    let pos_cursor = (cursor_position.0 + map_top_left_corner.0, cursor_position.1 + map_top_left_corner.1);
+
+    let mut width = 0;
+    let mut height = 0;
+
+    while pixel_are_equals(rgb_image.get_pixel(pos_cursor.0 + width, pos_cursor.1), cursor_color, 20) {
+        width += 1;
+    }
+    while pixel_are_equals(rgb_image.get_pixel(pos_cursor.0, pos_cursor.1 + height), cursor_color, 20) {
+        height += 1;
+    }
+
+    ((cursor_position.0 + width/2) / width, (cursor_position.1 + height/2) / height)
 }
 
 #[cfg(test)]
@@ -64,7 +117,7 @@ mod tests {
 
         // Then
         assert_eq!(72, x);
-        assert_eq!(107, y);
+        assert_eq!(108, y);
     }
 
     #[test]
@@ -77,6 +130,20 @@ mod tests {
         let size = find_map_size(&img, coord);
 
         // Then
-        assert_eq!((288, 146), size);
+        assert_eq!((287, 143), size);
+    }
+
+    #[test]
+    fn test_find_cursor_location() {
+        // Given
+        let img = read_image("images/20240310002429_1.jpg").unwrap();
+        let coord = find_map_top_left_corner(&img);
+        let size = find_map_size(&img, coord);
+
+        // When
+        let pos = find_cursor_location(&img, coord, size);
+
+        // Then
+        assert_eq!((2, 3), pos);
     }
 }
