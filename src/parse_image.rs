@@ -59,8 +59,7 @@ pub fn find_map_size(img: &image::DynamicImage, coordinates: (u32, u32)) -> (u32
     (width - 1, height - 1)
 }
 
-/// Find the location of the cursor
-/// return the position divided by the size to get the index of the screen
+/// Find the location of the cursor's top left corner
 pub fn find_cursor_location(img: &image::DynamicImage, map_top_left_corner: (u32, u32), map_size: (u32, u32)) -> (u32, u32) {
     let (map_corner_x, map_corner_y) = map_top_left_corner;
     let rgb_image = img.as_rgb8().unwrap();
@@ -76,6 +75,7 @@ pub fn find_cursor_location(img: &image::DynamicImage, map_top_left_corner: (u32
     return (0, 0)
 }
 
+/// Get the dimmension of the cursor
 pub fn find_cursor_size(img: &image::DynamicImage, cursor_top_left_corner: (u32, u32)) -> (u32, u32) {
     let rgb_image = img.as_rgb8().unwrap();
     let cursor_color = rgb_image.get_pixel(cursor_top_left_corner.0, cursor_top_left_corner.1);
@@ -93,6 +93,7 @@ pub fn find_cursor_size(img: &image::DynamicImage, cursor_top_left_corner: (u32,
     (width, height)
 }
 
+/// return the position divided by the size to get the index of the cursor on the map
 pub fn get_cursor_location_on_map(cursor_top_left_corner: (u32, u32), size: (u32, u32)) -> (u32, u32) {
     let (width, height) = size;
 
