@@ -83,10 +83,10 @@ pub fn find_cursor_size(img: &image::DynamicImage, cursor_top_left_corner: (u32,
     let mut width = 0;
     let mut height = 0;
 
-    while pixel_are_equals(rgb_image.get_pixel(cursor_top_left_corner.0 + width, cursor_top_left_corner.1), cursor_color, 20) {
+    while pixel_are_equals(rgb_image.get_pixel(cursor_top_left_corner.0 + width, cursor_top_left_corner.1), cursor_color, 25) {
         width += 1;
     }
-    while pixel_are_equals(rgb_image.get_pixel(cursor_top_left_corner.0, cursor_top_left_corner.1 + height), cursor_color, 20) {
+    while pixel_are_equals(rgb_image.get_pixel(cursor_top_left_corner.0, cursor_top_left_corner.1 + height), cursor_color, 25) {
         height += 1;
     }
 
@@ -97,7 +97,15 @@ pub fn find_cursor_size(img: &image::DynamicImage, cursor_top_left_corner: (u32,
 pub fn get_cursor_location_on_map(cursor_top_left_corner: (u32, u32), size: (u32, u32)) -> (u32, u32) {
     let (width, height) = size;
 
+    let width = width + 5;
+    let height = height + 4;
+
     ((cursor_top_left_corner.0 + width/2) / width, (cursor_top_left_corner.1 + height/2) / height)
+}
+
+/// return the number of tile on the map
+pub fn get_map_dimmensions(map_size: (u32, u32), cursor_size: (u32, u32)) -> (u32, u32) {
+    (map_size.0 / (cursor_size.0 + 5), map_size.1 / (cursor_size.1 + 4))
 }
 
 #[cfg(test)]
@@ -182,10 +190,52 @@ mod tests {
 
         let cursor_top_left_corner_absolute = (cursor_top_left_corner.0 + map_top_left_corner.0, cursor_top_left_corner.1 + map_top_left_corner.1);
         let cursor_size = find_cursor_size(&img, cursor_top_left_corner_absolute);
+
         // When
         let cursor_pos = get_cursor_location_on_map(cursor_top_left_corner, cursor_size);
 
         // Then
-        assert_eq!((2, 3), cursor_pos);
+        assert_eq!((1, 2), cursor_pos);
     }
+
+    #[test]
+    fn test_find_cursor_location_on_map_bottom_right_tile() {
+        // Given
+        let img = read_image("images/20240323155901_1.jpg").unwrap();
+
+        // When
+        let map_top_left_corner = find_map_top_left_corner(&img);
+        let map_size = find_map_size(&img, map_top_left_corner);
+        let cursor_top_left_corner = find_cursor_location(&img, map_top_left_corner, map_size);
+
+        let cursor_top_left_corner_absolute = (cursor_top_left_corner.0 + map_top_left_corner.0, cursor_top_left_corner.1 + map_top_left_corner.1);
+        let cursor_size = find_cursor_size(&img, cursor_top_left_corner_absolute);
+        let cursor_pos = get_cursor_location_on_map(cursor_top_left_corner, cursor_size);
+
+        // Then
+        assert_eq!((72, 108), map_top_left_corner);
+        assert_eq!((287, 143), map_size);
+        assert_eq!((275, 126), cursor_top_left_corner);
+        assert_eq!((347, 234), cursor_top_left_corner_absolute);
+        assert_eq!((13, 14), cursor_size);
+        assert_eq!((15, 7), cursor_pos);
+    }
+
+    #[test]
+    fn test_find_map_dimension() {
+         // Given
+        let img = read_image("images/20240310002429_1.jpg").unwrap();
+        let map_top_left_corner = find_map_top_left_corner(&img);
+        let map_size = find_map_size(&img, map_top_left_corner);
+        let cursor_top_left_corner = find_cursor_location(&img, map_top_left_corner, map_size);
+
+        let cursor_top_left_corner_absolute = (cursor_top_left_corner.0 + map_top_left_corner.0, cursor_top_left_corner.1 + map_top_left_corner.1);
+        let cursor_size = find_cursor_size(&img, cursor_top_left_corner_absolute);
+
+        // When
+        let map_dim = get_map_dimmensions(map_size, cursor_size);
+
+        // Then
+        assert_eq!((15, 7), map_dim);
+   }
 }
