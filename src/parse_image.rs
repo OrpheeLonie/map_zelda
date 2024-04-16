@@ -1,4 +1,5 @@
 use image::io::Reader as ImageReader;
+use image::GenericImage;
 
 /// Compare 2 pixels while ignoring a diff of less than `accuracy`
 fn pixel_are_equals(px1: &image::Rgb<u8>, px2: &image::Rgb<u8>, accuracy: i32) -> bool {
@@ -17,21 +18,22 @@ fn pixel_are_equals(px1: &image::Rgb<u8>, px2: &image::Rgb<u8>, accuracy: i32) -
 
 
 /// Try to open the image at `file_name`
-pub fn read_image(file_name: &str) -> Result<image::DynamicImage, image::ImageError> {
-    let img = ImageReader::open(file_name)?.decode()?;
+pub fn read_image(file_name: &str) -> Result<image::ImageBuffer<image::Rgb<u8>, Vec<u8>>, image::ImageError> {
+    let dynamic_img = ImageReader::open(file_name)?.decode()?;
+    let img = dynamic_img.as_rgb8().unwrap();
 
-    Ok(img)
+
+    Ok(img.clone())
 }
 
 /// Search for the top left corner of the map (first not black pixel) and return
 /// its coordinates
-pub fn find_map_top_left_corner(img: &image::DynamicImage) -> (u32, u32) {
-    let rgb_image = img.as_rgb8().unwrap();
+pub fn find_map_top_left_corner(img: &image::ImageBuffer<image::Rgb<u8>, Vec<u8>>) -> (u32, u32) {
     let mut x = 0;
     let mut y = 0;
     let black_pixel = image::Rgb([0, 0, 0]);
 
-    while pixel_are_equals(rgb_image.get_pixel(x, y), &black_pixel, 10) {
+    while pixel_are_equals(img.get_pixel(x, y), &black_pixel, 10) {
         x += 1;
         if y < x {
             y += 1;
@@ -42,17 +44,16 @@ pub fn find_map_top_left_corner(img: &image::DynamicImage) -> (u32, u32) {
 }
 
 /// find the size of the map
-pub fn find_map_size(img: &image::DynamicImage, coordinates: (u32, u32)) -> (u32, u32) {
+pub fn find_map_size(img: &image::ImageBuffer<image::Rgb<u8>, Vec<u8>>, coordinates: (u32, u32)) -> (u32, u32) {
     let mut width = 0;
     let mut height = 0;
-    let rgb_image = img.as_rgb8().unwrap();
     let black_pixel = image::Rgb([0, 0, 0]);
 
-    while !pixel_are_equals(rgb_image.get_pixel(coordinates.0 + width, coordinates.1), &black_pixel, 10) {
+    while !pixel_are_equals(img.get_pixel(coordinates.0 + width, coordinates.1), &black_pixel, 10) {
         width += 1;
     }
 
-    while !pixel_are_equals(rgb_image.get_pixel(coordinates.0, coordinates.1 + height), &black_pixel, 10) {
+    while !pixel_are_equals(img.get_pixel(coordinates.0, coordinates.1 + height), &black_pixel, 10) {
         height += 1;
     }
 
@@ -60,14 +61,13 @@ pub fn find_map_size(img: &image::DynamicImage, coordinates: (u32, u32)) -> (u32
 }
 
 /// Find the location of the cursor's top left corner
-pub fn find_cursor_location(img: &image::DynamicImage, map_top_left_corner: (u32, u32), map_size: (u32, u32)) -> (u32, u32) {
+pub fn find_cursor_location(img: &image::ImageBuffer<image::Rgb<u8>, Vec<u8>>, map_top_left_corner: (u32, u32), map_size: (u32, u32)) -> (u32, u32) {
     let (map_corner_x, map_corner_y) = map_top_left_corner;
-    let rgb_image = img.as_rgb8().unwrap();
-    let top_left_pixel = rgb_image.get_pixel(map_corner_x, map_corner_y);
+    let top_left_pixel = img.get_pixel(map_corner_x, map_corner_y);
 
     for x in 0..map_size.0 {
         for y in 0..map_size.1 {
-            if !pixel_are_equals(rgb_image.get_pixel(map_corner_x + x, map_corner_y + y), top_left_pixel, 20) {
+            if !pixel_are_equals(img.get_pixel(map_corner_x + x, map_corner_y + y), top_left_pixel, 20) {
                 return (x, y);
             }
         }
@@ -76,17 +76,16 @@ pub fn find_cursor_location(img: &image::DynamicImage, map_top_left_corner: (u32
 }
 
 /// Get the dimmension of the cursor
-pub fn find_cursor_size(img: &image::DynamicImage, cursor_top_left_corner: (u32, u32)) -> (u32, u32) {
-    let rgb_image = img.as_rgb8().unwrap();
-    let cursor_color = rgb_image.get_pixel(cursor_top_left_corner.0, cursor_top_left_corner.1);
+pub fn find_cursor_size(img: &image::ImageBuffer<image::Rgb<u8>, Vec<u8>>, cursor_top_left_corner: (u32, u32)) -> (u32, u32) {
+    let cursor_color = img.get_pixel(cursor_top_left_corner.0, cursor_top_left_corner.1);
 
     let mut width = 0;
     let mut height = 0;
 
-    while pixel_are_equals(rgb_image.get_pixel(cursor_top_left_corner.0 + width, cursor_top_left_corner.1), cursor_color, 25) {
+    while pixel_are_equals(img.get_pixel(cursor_top_left_corner.0 + width, cursor_top_left_corner.1), cursor_color, 25) {
         width += 1;
     }
-    while pixel_are_equals(rgb_image.get_pixel(cursor_top_left_corner.0, cursor_top_left_corner.1 + height), cursor_color, 25) {
+    while pixel_are_equals(img.get_pixel(cursor_top_left_corner.0, cursor_top_left_corner.1 + height), cursor_color, 25) {
         height += 1;
     }
 
@@ -106,6 +105,19 @@ pub fn get_cursor_location_on_map(cursor_top_left_corner: (u32, u32), size: (u32
 /// return the number of tile on the map
 pub fn get_map_dimmensions(map_size: (u32, u32), cursor_size: (u32, u32)) -> (u32, u32) {
     (map_size.0 / (cursor_size.0 + 5), map_size.1 / (cursor_size.1 + 4))
+}
+
+pub fn add_image_to_map(map: &mut image::ImageBuffer<image::Rgb<u8>, Vec<u8>>, img: &image::ImageBuffer<image::Rgb<u8>, Vec<u8>>) -> image::ImageResult<()> {
+    let map_top_left_corner = find_map_top_left_corner(&img);
+    let map_size = find_map_size(&img, map_top_left_corner);
+    let cursor_top_left_corner = find_cursor_location(&img, map_top_left_corner, map_size);
+    let cursor_top_left_corner_absolute = (cursor_top_left_corner.0 + map_top_left_corner.0, cursor_top_left_corner.1 + map_top_left_corner.1);
+    let cursor_size = find_cursor_size(&img, cursor_top_left_corner_absolute);
+    let cursor_pos = get_cursor_location_on_map(cursor_top_left_corner, cursor_size);
+
+    map.copy_from(img, cursor_pos.0 * map_size.0, cursor_size.1 * map_size.1)?;
+
+    Ok(())
 }
 
 #[cfg(test)]
