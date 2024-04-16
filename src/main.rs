@@ -21,4 +21,9 @@ fn main() {
             Err(error) => println!("Error: {:?}", error),
         }
     }
+
+    match map.save("map.png") {
+        Ok(_) => println!("Save ok"),
+        Err(error) => println!("Error: {:?}", error),
+    };
 }
