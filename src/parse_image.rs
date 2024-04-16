@@ -96,8 +96,8 @@ pub fn find_cursor_size(img: &image::ImageBuffer<image::Rgb<u8>, Vec<u8>>, curso
 pub fn get_cursor_location_on_map(cursor_top_left_corner: (u32, u32), size: (u32, u32)) -> (u32, u32) {
     let (width, height) = size;
 
-    let width = width + 5;
-    let height = height + 4;
+    let width = width + 6;
+    let height = height + 6;
 
     ((cursor_top_left_corner.0 + width/2) / width, (cursor_top_left_corner.1 + height/2) / height)
 }
@@ -115,7 +115,9 @@ pub fn add_image_to_map(map: &mut image::ImageBuffer<image::Rgb<u8>, Vec<u8>>, i
     let cursor_size = find_cursor_size(&img, cursor_top_left_corner_absolute);
     let cursor_pos = get_cursor_location_on_map(cursor_top_left_corner, cursor_size);
 
-    map.copy_from(img, cursor_pos.0 * map_size.0, cursor_size.1 * map_size.1)?;
+    println!("cursor pos: {}, {}", cursor_pos.0, cursor_pos.1);
+    println!("copying at: {}, {}", cursor_pos.0 * img.width(), cursor_pos.1 * img.height());
+    map.copy_from(img, cursor_pos.0 * img.width(), cursor_pos.1 * img.height())?;
 
     Ok(())
 }
@@ -230,7 +232,7 @@ mod tests {
         assert_eq!((275, 126), cursor_top_left_corner);
         assert_eq!((347, 234), cursor_top_left_corner_absolute);
         assert_eq!((13, 14), cursor_size);
-        assert_eq!((15, 7), cursor_pos);
+        assert_eq!((14, 6), cursor_pos);
     }
 
     #[test]
