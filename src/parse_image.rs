@@ -250,4 +250,22 @@ mod tests {
         // Then
         assert_eq!((15, 7), map_dim);
    }
+
+    #[test]
+    fn test_find_map_dimension_2() {
+         // Given
+        let img = read_image("images/20240323155901_1.jpg").unwrap();
+        let map_top_left_corner = find_map_top_left_corner(&img);
+        let map_size = find_map_size(&img, map_top_left_corner);
+        let cursor_top_left_corner = find_cursor_location(&img, map_top_left_corner, map_size);
+
+        let cursor_top_left_corner_absolute = (cursor_top_left_corner.0 + map_top_left_corner.0, cursor_top_left_corner.1 + map_top_left_corner.1);
+        let cursor_size = find_cursor_size(&img, cursor_top_left_corner_absolute);
+
+        // When
+        let map_dim = get_map_dimmensions(map_size, cursor_size);
+
+        // Then
+        assert_eq!((15, 7), map_dim);
+   }
 }
